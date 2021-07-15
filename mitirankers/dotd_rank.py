@@ -5,7 +5,8 @@ class DotdRanker(AbstractRanker):
 
     def __init__(self):
         self.description = "class for random tests of openABM loop"
-
+        self.rng = np.random.RandomState(1)
+    
     def init(self, N, T):
         self.T = T
         self.N = N
@@ -17,6 +18,6 @@ class DotdRanker(AbstractRanker):
         computing rank of infected individuals
         return: list -- [(index, value), ...]
         '''
-        rank = [[i,np.random.random()] for i in range(self.N)]
+        rank = [[i, self.rng.random()] for i in range(self.N)]
 
         return rank

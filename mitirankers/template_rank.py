@@ -5,7 +5,8 @@ class AbstractRanker():
     def __init__(self):
         self.description = "This shape has not been described yet"
         self.author = "Nobody has claimed to make this shape yet"
- 
+        self.rng = np.random.RandomState(1)
+
     def init(self, N, T):
         raise NotImplementedError
         

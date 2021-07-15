@@ -21,7 +21,7 @@ def ranking_tracing(t, transmissions, observations, tau):
     """
     N = transmissions[0].shape[0]
     if (t < tau):
-        scores = np.random.rand(N)
+        scores = self.rng.rand(N)
         return scores
     # last_tested : observations s=I for t-tau <= t_test < t
     last_tested = set(
@@ -53,6 +53,7 @@ class TracingRanker(AbstractRanker):
         self.author = "https://github.com/sphinxteam"
         self.tau = tau
         self.lamb = lamb
+        self.rng = np.random.RandomState(1)
 
     def init(self, N, T):
         self.transmissions = []
