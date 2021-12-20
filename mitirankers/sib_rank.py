@@ -85,7 +85,7 @@ class SibRanker(AbstractRanker):
 
             print("...drop first time and reset observations")
             self.f.drop_time(t_start)
-            self.f.reset_observations(sum(self.all_obs[t_start+1:], []))
+            #self.f.reset_observations(sum(self.all_obs[t_start+1:], []))
 
             if self.memory_decay < 1:
                 self.f.params.pseed = 1/3
@@ -94,9 +94,9 @@ class SibRanker(AbstractRanker):
                 for i in range(self.N):
                     self.f.nodes[i].ht[0] *= self.bi[i,t_start]
                     self.f.nodes[i].hg[0] *= self.br[i,t_start+1]
-            for i in range(self.N):
-                self.f.nodes[i].ht[0] = max(self.f.nodes[i].ht[0], self.pseed)
-                self.f.nodes[i].hg[0] = max(self.f.nodes[i].hg[0], self.pseed)
+            #for i in range(self.N):
+            #    self.f.nodes[i].ht[0] = max(self.f.nodes[i].ht[0], self.pseed)
+            #    self.f.nodes[i].hg[0] = max(self.f.nodes[i].hg[0], self.pseed)
                                 
 
         sib.iterate(self.f, maxit=self.maxit0, damping=self.damp0, tol=self.tol, 
