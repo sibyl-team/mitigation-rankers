@@ -39,7 +39,7 @@ class DctRanker(AbstractRanker):
         idx_I = obs_df[obs_df["s"] == 1]["i"].to_numpy()
         idx_dct = contacts_df[contacts_df["i"].isin(idx_I)]["j"].to_numpy()
         for i in idx_I:
-            Score[i] = N + 1e-3 * self.rng.rand()
+            Score[i] = self.N + 1e-3 * self.rng.rand()
         for i in idx_dct:
             Score[i] = 1.0 + 1e-3 * self.rng.rand()
 
