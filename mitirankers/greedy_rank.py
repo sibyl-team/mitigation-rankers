@@ -38,17 +38,21 @@ class GreedyRanker(AbstractRanker):
         for obs in daily_obs:
             self.obs.append(obs)
 
-        while len(self.contacts) > 0:
-            if self.contacts[0][2] < t_day - self.tau:
-                self.contacts.pop()
-            else:
-                break
-
+        # this is somehow wrong ->
+        #while len(self.contacts) > 0:
+        #    if self.contacts[0][2] < t_day - self.tau:
+        #        self.contacts.pop()
+        #    else:
+        #        break
+    
         for (i,j,t,l) in daily_contacts:
             self.contacts.append([i,j,t,l])
 
         obs_df = pd.DataFrame(self.obs, columns=["i", "s", "t_test"])
         contacts_df = pd.DataFrame(self.contacts, columns=["i", "j", "t", "lambda"])
+        contacts_df = contacts_df[contacts_df["t"] >= t_day - self.tau]
+        
+        #print(t_day - self.tau, len(contacts_df))
 
         if not self.include_S:
             obs_df = obs_df[obs_df.s != 0] # just infected
