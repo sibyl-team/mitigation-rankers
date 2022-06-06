@@ -33,7 +33,7 @@ class DctRanker(AbstractRanker):
 
         obs_df = pd.DataFrame(daily_obs, columns=["i", "s", "t_test"])
         contacts_df = pd.DataFrame(self.contacts, columns=["i", "j", "t", "lambda"])
-        contacts_df = cotacts_df[contacts_df["t"] >= t_day - self.tau]
+        contacts_df = contacts_df[contacts_df["t"] >= t_day - self.tau]
 
         Score = dict([(i, 0) for i in range(self.N)])
         idx_I = obs_df[obs_df["s"] == 1]["i"].to_numpy()
