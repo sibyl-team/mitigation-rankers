@@ -9,6 +9,25 @@ def records_to_csr(N, records, lamb):
     data = lamb*np.array(value)*np.ones_like(row)
     return csr_matrix((data, (row, col)), shape=(N, N))
 
+def contacts_rec_to_csr(N, records, lamb):
+    """
+    Faster function to take advantage of records array
+    and avoid loops
+    @author: Fabio Mazza
+    """
+    if isinstance(records, np.recarray):
+        records.dtype.names = "i","j","t","m"
+        row = records["i"]
+        col = records["j"]
+        value = records["m"]
+    else:
+        rec = np.array(records)
+        row = rec[:,0].astype(int)
+        col = rec[:,1].astype(int)
+        value = rec[:,2].astype(float)
+    data = lamb*np.array(value)*np.ones_like(row)
+    return csr_matrix((data, (row, col)), shape=(N, N))
+
 
 def get_infection_probas_mean_field(probas, transmissions):
     """
@@ -153,6 +172,19 @@ class MeanFieldRanker(AbstractRanker):
         self.mfIs = np.full(T, np.nan)
 
         return True
+
+    def _append_data(self, t_day, daily_contacts, daily_obs):
+        """
+        Add obs
+        """
+        #check_inputs(t_day, daily_contacts, daily_obs)
+        # append daily_contacts and daily_obs
+        daily_transmissions = contacts_rec_to_csr(self.N, daily_contacts, self.lamb)
+        self.transmissions.append(daily_transmissions)
+        self.observations += [
+            dict(i=i, s=s, t_test=t_test) for i, s, t_test in daily_obs
+        ]
+
     def rank(self, t_day, daily_contacts, daily_obs, data):
         '''
         computing rank of infected individuals
@@ -160,13 +192,15 @@ class MeanFieldRanker(AbstractRanker):
         '''
         self.delta = min(self.delta_init, t_day)
         # check that t=t_day in daily_contacts and t=t_day-1 in daily_obs
-        check_inputs(t_day, daily_contacts, daily_obs)
+        """check_inputs(t_day, daily_contacts, daily_obs)
         # append daily_contacts and daily_obs
         daily_transmissions = records_to_csr(self.N, daily_contacts, self.lamb)
         self.transmissions.append(daily_transmissions)
         self.observations += [
             dict(i=i, s=s, t_test=t_test) for i, s, t_test in daily_obs
-        ]
+        ]"""
+        self._append_data(t_day, daily_contacts, daily_obs)
+
         # scores given by mean field run from t-delta to t
         scores = ranking_backtrack(
             t_day, self.transmissions, self.observations,

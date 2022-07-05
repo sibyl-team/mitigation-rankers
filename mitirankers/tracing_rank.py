@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 from .template_rank import AbstractRanker
-from .mean_field_rank import records_to_csr, get_rank, check_inputs
+from .mean_field_rank import contacts_rec_to_csr, get_rank, check_inputs
 
 
 def csr_to_list(x):
@@ -10,7 +10,7 @@ def csr_to_list(x):
     return zip(x_coo.row, x_coo.col, x_coo.data)
 
 
-def ranking_tracing(t, transmissions, observations, tau):
+def ranking_tracing(t, transmissions, observations, tau, rng):
     """Naive contact tracing.
 
     Search for all individuals that have been in contact during [t-tau, t]
@@ -21,14 +21,15 @@ def ranking_tracing(t, transmissions, observations, tau):
     """
     N = transmissions[0].shape[0]
     if (t < tau):
-        scores = self.rng.rand(N)
+        scores = rng.rand(N)
         return scores
     # last_tested : observations s=I for t-tau <= t_test < t
     last_tested = set(
         obs["i"] for obs in observations
-        if obs["s"] == 1 and (t - tau <= obs["t_test"]) and (obs["t_test"] < t)
+        if obs["s"] == 1 and (t - tau <= obs["t_test"]) and (obs["t_test"] <= t)
     )
     # contacts with last_tested people during [t - tau, t]
+    #print("CT, last_tested ", last_tested)
     contacts = pd.DataFrame(
         dict(i=i, j=j, t=t_contact)
         for t_contact in range(t - tau, t)
@@ -43,6 +44,45 @@ def ranking_tracing(t, transmissions, observations, tau):
         counts = contacts.groupby("i").size() # number of encounters for all i
         encounters["count"] = encounters["i"].map(counts).fillna(0)
     scores = encounters["count"].values
+    return scores
+
+
+def ranking_tracing_faster(t, transmissions, observations, tau, rng):
+    """Naive contact tracing.
+
+    Search for all individuals that have been in contact during [t-tau, t]
+    with the individuals last tested positive (observations s=I at
+    t-tau <= t_test < t) and count the number of encounters.
+
+    Faster versions, using the sparse matrices
+    @author Fabio Mazza
+
+    Returns: scores = encounters. If t < delta returns random scores.
+    """
+    N = transmissions[0].shape[0]
+    if (t < tau):
+        scores = rng.rand(N)
+        return scores
+    # last_tested : observations s=I for t-tau <= t_test < t
+    last_tested = set(
+        obs["i"] for obs in observations
+        if obs["s"] == 1 and (t - tau <= obs["t_test"]) and (obs["t_test"] <= t)
+    )
+    nt = len(last_tested)
+    ## Indicator matrix, 1 -> tested positive
+    test_pos = csr_matrix((np.ones(nt), 
+                          (np.zeros(nt,dtype=int), list(last_tested))), shape=(1,N) )
+    c = 0
+    for t_c in range(t-tau, t):
+        ## number of contacts with the positive individual at time t_c
+        x = (test_pos).dot(transmissions[t_c]>0)
+        c+= x #(x>0).astype(float)
+    """
+    For a more accurate (?) version of the CT, we could also do:
+        x = (test_pos).dot(transmissions[t_c])
+        c+= (x>0).astype(float)
+    """
+    scores = c.toarray()[0]
     return scores
 
 
@@ -68,16 +108,16 @@ class TracingRanker(AbstractRanker):
         return: list -- [(index, value), ...]
         '''
         # check that t=t_day in daily_contacts and t=t_day-1 in daily_obs
-        check_inputs(t_day, daily_contacts, daily_obs)
+        #check_inputs(t_day, daily_contacts, daily_obs)
         # append daily_contacts and daily_obs
-        daily_transmissions = records_to_csr(self.N, daily_contacts, self.lamb)
+        daily_transmissions = contacts_rec_to_csr(self.N, daily_contacts, self.lamb)
         self.transmissions.append(daily_transmissions)
         self.observations += [
             dict(i=i, s=s, t_test=t_test) for i, s, t_test in daily_obs
         ]
         # scores given by mean field run from t-delta to t
-        scores = ranking_tracing(
-            t_day, self.transmissions, self.observations, self.tau
+        scores = ranking_tracing_faster(
+            t_day, self.transmissions, self.observations, self.tau, self.rng
         )
         # convert to list [(index, value), ...]
         rank = get_rank(scores)
