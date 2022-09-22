@@ -52,8 +52,11 @@ class GreedyRanker(AbstractRanker):
     '''
     def _save_contacts(self, daily_contacts):
         """
-        Save contacts in a pandas dataframe
-        This is slower than numpy but easier to handle
+        Save contacts using numpy named array
+        Seems more difficult but it's not,
+        and much faster than using pandas dataframes (10x)
+
+        Assuming contacts are tuple (i,j,t,lambda) in this order
         """
         conts_dtype = np.dtype([(k, "int") for k in ["i","j","t"]]+[("lambda", "float")])
 
