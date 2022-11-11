@@ -29,25 +29,24 @@ class DctRanker(AbstractRanker):
 
     def _save_contacts(self, daily_contacts):
         """
-        Save contacts using numpy named array
-        A little more complicated, but
-        much faster than using pandas dataframes (10x)
-
-        Assuming contacts are tuple (i,j,t,lambda) in this order
-        @author Fabio Mazza
+        Save contacts in a pandas dataframe
+        This is slower than numpy but easier to handle
         """
         conts_dtype = np.dtype([(k, "int") for k in ["i","j","t"]]+[("lambda", "float")])
-
-        if isinstance(daily_contacts, np.recarray):
-            cts_d = daily_contacts.copy()
-            cts_d.dtype.names = "i", "j", "t", "lambda"
-            
+        if len(daily_contacts) > 0:
+            if isinstance(daily_contacts, np.recarray):
+                cts_d = daily_contacts.copy()
+                cts_d.dtype.names = "i", "j", "t", "lambda"
+                
+            else:
+                cts_d = np.array(daily_contacts,dtype=conts_dtype)
         else:
-            cts_d = np.array(daily_contacts,dtype=conts_dtype)
+            cts_d = np.empty((0,), dtype=conts_dtype)
+            #print("New contacts: ", cts_d)
 
         assert len(cts_d) == len(daily_contacts)
         print(f"{len(cts_d)} new contacts,", end=" ")
-        if self.contacts is None:
+        if self.contacts is None or len(self.contacts)==0:
             self.contacts = cts_d
         else:
             self.contacts = np.concatenate((self.contacts, cts_d))
